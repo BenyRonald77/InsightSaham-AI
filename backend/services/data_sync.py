@@ -15,6 +15,7 @@ import pandas as pd
 import yfinance as yf
 
 from config import settings
+from services.watchlist_data import get_all_watchlist_stocks
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,9 @@ IDX_STOCKS = {
     "ELSA": {"name": "Elnusa Tbk.", "sector": "Energi"},
     "WBSA": {"name": "BSA Logistics Indonesia Tbk.", "sector": "Transportasi & Logistik"},
 }
+
+# Merge all curated watchlist stocks into master list
+IDX_STOCKS.update(get_all_watchlist_stocks())
 
 
 def get_yfinance_ticker(code: str) -> str:

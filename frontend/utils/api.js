@@ -34,6 +34,7 @@ export const api = {
   getSectors: () => request('/universe/sectors'),
   refreshUniverse: () => request('/universe/refresh', { method: 'POST' }),
   getUniverseStats: () => request('/universe/stats'),
+  getWatchlist: () => request('/universe/watchlist'),
 
   // === Analysis ===
   runAnalysis: (stockCodes) =>

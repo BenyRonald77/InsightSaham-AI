@@ -8,10 +8,12 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, desc
 
 from database import get_db
 from models.stock import Stock
+from models.analysis import AnalysisRun
+from services.watchlist_data import CURATED_WATCHLIST, get_all_watchlist_stocks
 from services.data_sync import (
     get_all_stock_codes,
     batch_download,
@@ -167,3 +169,105 @@ async def get_universe_stats(db: AsyncSession = Depends(get_db)):
         "filtered_out": total - filtered,
         "suspected_suspended": suspended,
     }
+
+
+@router.get("/watchlist")
+async def get_curated_watchlist(db: AsyncSession = Depends(get_db)):
+    """
+    Get the curated watchlist structured by categories and groups,
+    enriched with live/DB price and latest analysis status.
+    """
+    # 1. Fetch all stocks from DB
+    result = await db.execute(select(Stock))
+    stocks_by_code = {s.code: s for s in result.scalars().all()}
+
+    # 2. If any watchlist stocks don't exist in DB, auto-seed them
+    master_watchlist = get_all_watchlist_stocks()
+    new_stocks = []
+    for code, info in master_watchlist.items():
+        if code not in stocks_by_code:
+            s = Stock(
+                code=code,
+                name=info["name"],
+                sector=info["sector"],
+                passes_filter=True,
+                last_price=0.0,
+                last_volume=0.0,
+                price_change_pct=0.0,
+                last_updated=datetime.utcnow(),
+            )
+            db.add(s)
+            new_stocks.append(s)
+            stocks_by_code[code] = s
+
+    if new_stocks:
+        await db.commit()
+
+    # 3. Fetch latest analysis run for each stock
+    analysis_res = await db.execute(
+        select(AnalysisRun)
+        .where(AnalysisRun.status == "completed")
+        .order_by(desc(AnalysisRun.id))
+    )
+    all_analyses = analysis_res.scalars().all()
+    latest_analysis_by_stock: dict[str, dict] = {}
+    for a in all_analyses:
+        if a.stock_code not in latest_analysis_by_stock:
+            latest_analysis_by_stock[a.stock_code] = {
+                "id": a.id,
+                "trend": a.trend,
+                "analysis_date": a.analysis_date.isoformat() if a.analysis_date else None,
+                "close_price": a.close_price,
+                "price_change_pct": a.price_change_pct,
+            }
+
+    # 4. Construct enriched categories
+    enriched_categories = []
+    total_unique_stocks = set()
+
+    for cat in CURATED_WATCHLIST:
+        cat_copy = {
+            "id": cat["id"],
+            "title": cat["title"],
+            "icon": cat["icon"],
+            "description": cat["description"],
+            "groups": [],
+        }
+        for grp in cat["groups"]:
+            grp_copy = {
+                "name": grp["name"],
+                "short_name": grp["short_name"],
+                "stocks": [],
+            }
+            for item in grp["stocks"]:
+                code = item["code"]
+                total_unique_stocks.add(code)
+                stock_db = stocks_by_code.get(code)
+                analysis_info = latest_analysis_by_stock.get(code)
+
+                last_price = stock_db.last_price if stock_db and stock_db.last_price > 0 else (
+                    analysis_info["close_price"] if analysis_info else 0.0
+                )
+                price_change = stock_db.price_change_pct if stock_db else (
+                    analysis_info["price_change_pct"] if analysis_info else 0.0
+                )
+
+                grp_copy["stocks"].append({
+                    "code": code,
+                    "name": item["name"],
+                    "sector": item["sector"],
+                    "last_price": last_price,
+                    "price_change_pct": price_change,
+                    "passes_filter": stock_db.passes_filter if stock_db else True,
+                    "has_analysis": analysis_info is not None,
+                    "latest_analysis": analysis_info,
+                })
+            cat_copy["groups"].append(grp_copy)
+        enriched_categories.append(cat_copy)
+
+    return {
+        "total_categories": len(enriched_categories),
+        "total_stocks": len(total_unique_stocks),
+        "categories": enriched_categories,
+    }
+

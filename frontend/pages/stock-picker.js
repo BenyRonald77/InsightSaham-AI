@@ -86,6 +86,14 @@ export async function renderStockPicker(container) {
   // Load stocks
   await loadStocks();
 
+  // Support preselected stocks from Dashboard Wishlist
+  if (window.__preselectedStocks && Array.isArray(window.__preselectedStocks)) {
+    window.__preselectedStocks.forEach(code => selectedStocks.add(code));
+    window.__preselectedStocks = null;
+    renderTable();
+    updateSelectedCount();
+  }
+
   // Event handlers
   document.getElementById('stock-search').addEventListener('input', debounce((e) => {
     searchQuery = e.target.value;
