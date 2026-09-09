@@ -27,6 +27,8 @@ class SettingsResponse(BaseModel):
     volume_ma_period: int
     llm_provider: str
     llm_available: bool
+    broker_data_source: str
+    has_indexalpha_key: bool
 
 
 @router.get("", response_model=SettingsResponse)
@@ -37,6 +39,9 @@ async def get_settings():
     llm_available = False
     if settings.llm_provider == "gemini":
         llm_available = GeminiProvider().is_available()
+
+    has_indexalpha = bool(settings.indexalpha_api_key and settings.indexalpha_api_key.strip())
+    broker_source = "Index Alpha API (Live)" if has_indexalpha else "EOD Bandarmologi Engine (Internal)"
 
     return SettingsResponse(
         min_price=settings.min_price,
@@ -55,4 +60,6 @@ async def get_settings():
         volume_ma_period=settings.volume_ma_period,
         llm_provider=settings.llm_provider,
         llm_available=llm_available,
+        broker_data_source=broker_source,
+        has_indexalpha_key=has_indexalpha,
     )

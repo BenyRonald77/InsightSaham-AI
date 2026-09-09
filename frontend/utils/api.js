@@ -50,6 +50,8 @@ export const api = {
     const qs = new URLSearchParams(params).toString();
     return request(`/analysis/archive${qs ? '?' + qs : ''}`);
   },
+  getBrokerSummary: (stockCode, timeframe = 'today') =>
+    request(`/analysis/broker-summary/${stockCode}?timeframe=${timeframe}`),
 
   // === Settings ===
   getSettings: () => request('/settings'),

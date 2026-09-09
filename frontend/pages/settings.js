@@ -122,6 +122,42 @@ function renderSettingsContent(s) {
         </div>
       </div>
 
+      <!-- Broker Summary / Bandarmologi Data Source -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">🏛️ Data Broker Summary & Bandarmologi</h3>
+        </div>
+        <div class="panel-section-body">
+          <div class="data-row" style="padding: 8px 0;">
+            <span class="label">Penyedia Data</span>
+            <span class="value fw-bold text-accent">${s.broker_data_source || 'Index Alpha API (Live)'}</span>
+          </div>
+          <div class="data-row" style="padding: 8px 0;">
+            <span class="label">Status Koneksi</span>
+            <span class="value">
+              ${s.has_indexalpha_key
+                ? '<span class="text-bullish fw-bold">● Index Alpha Terhubung (Free Plan)</span>'
+                : '<span class="text-neutral fw-bold">● Mode Standar (Otomatis Aktif)</span>'}
+            </span>
+          </div>
+          <div class="data-row" style="padding: 8px 0;">
+            <span class="label">Batas Kuota Free Tier</span>
+            <span class="value text-mono fw-bold">5 request / hari (Reset 00:00 WIB)</span>
+          </div>
+          <div class="data-row" style="padding: 8px 0;">
+            <span class="label">Proteksi Kuota</span>
+            <span class="value text-bullish fw-bold">✓ Smart Persistent Cache Aktif</span>
+          </div>
+        </div>
+        <div style="margin-top: var(--space-sm); padding: 12px; background: var(--bg-input); border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-secondary); line-height: 1.6;">
+          ${s.has_indexalpha_key
+            ? '✓ <strong>API Key Index Alpha Aktif (Free Tier)</strong>.<br/>'
+              + '🛡️ <strong>Smart Persistent Cache</strong>: Data saham yang sudah diambil disimpan permanen di disk sehingga 5 jatah request harian Anda aman dan tidak habis dipakai reload atau ganti tab.<br/>'
+              + '⚡ <strong>Auto Fallback</strong>: Jika kuota harian 5 request tercapai, sistem secara otomatis beralih ke <em>EOD Bandarmologi Engine</em> tanpa gangguan hingga kuota di-reset tengah malam.'
+            : '💡 <strong>Tidak wajib memiliki API key!</strong> Sistem otomatis menggunakan <em>EOD Bandarmologi Engine</em> internal yang menghitung Top 5/10 buyer, seller, harga modal, dan meter aksi bandar.<br/><br/>Jika Anda memiliki API key Index Alpha, masukkan di file <code>.env</code>: <code>INDEXALPHA_API_KEY=your_key_here</code>.'}
+        </div>
+      </div>
+
       <!-- About -->
       <div class="card">
         <div class="card-header">

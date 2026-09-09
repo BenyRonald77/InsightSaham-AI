@@ -5,7 +5,8 @@
 import { api } from '../utils/api.js';
 import {
   formatPrice, formatPercent, formatVolume, formatDate,
-  formatIndicator, getPriceChangeClass, getTrendClass, safeNum
+  formatIndicator, getPriceChangeClass, getTrendClass, safeNum,
+  formatIDRBillions, formatNumberShort, getBandarStatusClass
 } from '../utils/formatters.js';
 
 export async function renderAnalysisDetail(container, analysisId) {
@@ -30,7 +31,11 @@ export async function renderAnalysisDetail(container, analysisId) {
   }
 }
 
+let currentDetailData = null;
+let currentBrokerTimeframe = 'today';
+
 function renderCard(container, data) {
+  currentDetailData = data;
   const ind = data.indicators || {};
   const trend = data.trend || 'KONSOLIDASI';
   const trendReasons = data.trend_reasons || {};
@@ -92,6 +97,9 @@ function renderCard(container, data) {
       </div>
     </div>
 
+    <!-- BROKER SUMMARY / BANDARMOLOGI SECTION -->
+    ${renderBrokerSummary(data.broker_summary, data)}
+
     <!-- SCENARIOS -->
     ${renderScenarios(scenarios, data)}
 
@@ -151,6 +159,14 @@ function renderDataHariIni(data) {
         <div class="data-row"><span class="label">● Close (Last)</span><span class="value text-mono ${getPriceChangeClass(change)}">${changeStr}</span></div>
         <div class="data-row"><span class="label">● Volume</span><span class="value text-mono">${formatVolume(data.volume)}</span></div>
         <div class="data-row"><span class="label">● MA20 Volume</span><span class="value text-mono">${formatVolume(data.volume_ma20)}</span></div>
+        ${data.broker_summary?.bandar_status ? `
+        <div class="data-row" style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-primary); align-items:center;">
+          <span class="label">● Bandarmologi</span>
+          <span class="value bandar-status-badge ${getBandarStatusClass(data.broker_summary.bandar_status)}" style="font-size:0.7rem; padding:2px 8px;">
+            ${data.broker_summary.bandar_status_label || data.broker_summary.bandar_status}
+          </span>
+        </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -365,6 +381,300 @@ function renderDisclaimer() {
       </div>
     </div>
   `;
+}
+
+function renderBrokerSummary(bs, data) {
+  if (!bs) return '';
+
+  return `
+    <div class="card bandarmologi-card" id="broker-summary-card">
+      <div id="broker-summary-inner">
+        ${renderBrokerSummaryInner(bs, data, currentBrokerTimeframe || 'today')}
+      </div>
+    </div>
+  `;
+}
+
+function renderBrokerSummaryInner(bs, data, activeTf = 'today') {
+  const allTfs = bs.timeframes || {};
+  const currentTfData = allTfs[activeTf] || bs;
+
+  const summary = currentTfData.summary || {};
+  const buyers = currentTfData.top_buyers || [];
+  const sellers = currentTfData.top_sellers || [];
+  const bandarStatusClass = getBandarStatusClass(currentTfData.bandar_status);
+  const meterPercent = currentTfData.meter_percent != null ? currentTfData.meter_percent : 50;
+
+  const buyersHtml = buyers.length > 0 ? buyers.map(b => `
+    <tr>
+      <td>
+        <span class="broker-code-badge ${b.type === 'Foreign' ? 'foreign' : 'domestic'}">${b.broker}</span>
+        <span class="broker-full-name" title="${b.name}">${b.name}</span>
+      </td>
+      <td style="text-align:center;">
+        <span class="broker-type-pill ${b.type === 'Foreign' ? 'foreign' : 'domestic'}">${b.type === 'Foreign' ? 'Asing' : 'Domestik'}</span>
+      </td>
+      <td style="text-align:right;" class="text-mono">${formatNumberShort(b.lot)}</td>
+      <td style="text-align:right;" class="text-mono">${formatIDRBillions(b.value_idr)}</td>
+      <td style="text-align:right; font-weight:600;" class="text-mono text-bullish">${formatPrice(b.avg_price)}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Tidak ada data broker pembeli</td></tr>`;
+
+  const sellersHtml = sellers.length > 0 ? sellers.map(s => `
+    <tr>
+      <td>
+        <span class="broker-code-badge ${s.type === 'Foreign' ? 'foreign' : 'domestic'}">${s.broker}</span>
+        <span class="broker-full-name" title="${s.name}">${s.name}</span>
+      </td>
+      <td style="text-align:center;">
+        <span class="broker-type-pill ${s.type === 'Foreign' ? 'foreign' : 'domestic'}">${s.type === 'Foreign' ? 'Asing' : 'Domestik'}</span>
+      </td>
+      <td style="text-align:right;" class="text-mono">${formatNumberShort(s.lot)}</td>
+      <td style="text-align:right;" class="text-mono">${formatIDRBillions(s.value_idr)}</td>
+      <td style="text-align:right; font-weight:600;" class="text-mono text-bearish">${formatPrice(s.avg_price)}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Tidak ada data broker penjual</td></tr>`;
+
+  const foreignNetVal = summary.foreign_net_val || 0;
+  const foreignFlowClass = foreignNetVal > 0 ? 'text-bullish' : (foreignNetVal < 0 ? 'text-bearish' : 'text-neutral');
+  const top5NetVal = summary.top5_net_val || 0;
+  const top5NetClass = top5NetVal >= 0 ? 'text-bullish' : 'text-bearish';
+
+  return `
+    <!-- HEADER -->
+    <div class="bandarmologi-header">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <h3 style="margin:0; font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+            <span>🏛️</span> Broker Summary & Bandarmologi
+          </h3>
+          <span class="bandar-status-badge ${bandarStatusClass}">
+            ${currentTfData.bandar_status_label || currentTfData.bandar_status || 'NEUTRAL'}
+          </span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span>Aktivitas Broker & Akumulasi/Distribusi · ${currentTfData.timeframe_label || '1 Hari'}</span>
+          <span class="source-tag-pill ${(summary.source && summary.source.includes('Index Alpha')) ? 'source-live' : (summary.source_type === 'fallback' ? 'source-fallback' : 'source-engine')}">
+            ${summary.source_badge || summary.source || '🟢 Index Alpha API (Live IDX)'}
+          </span>
+        </div>
+      </div>
+
+      <div class="bandarmologi-quick-metrics">
+        <div class="metric-pill">
+          <span class="m-label">Foreign Flow</span>
+          <span class="m-val ${foreignFlowClass}">
+            ${summary.foreign_flow_label || (foreignNetVal > 0 ? 'Net Buy' : 'Net Sell')}
+          </span>
+        </div>
+        <div class="metric-pill">
+          <span class="m-label">Acc/Dist Ratio</span>
+          <span class="m-val ${(summary.acc_dist_ratio || 1) >= 1.1 ? 'text-bullish' : ((summary.acc_dist_ratio || 1) <= 0.9 ? 'text-bearish' : 'text-neutral')}">
+            ${summary.acc_dist_ratio ? summary.acc_dist_ratio.toFixed(2) + 'x' : '1.0x'}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMEFRAME SELECTOR BAR -->
+    <div class="broker-timeframe-bar">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Rentang Waktu:</span>
+        <div class="timeframe-pill-group">
+          <button class="tf-btn ${activeTf === 'today' ? 'active' : ''}" onclick="window.switchBrokerTimeframe('today')">1 Hari</button>
+          <button class="tf-btn ${activeTf === 'yesterday' ? 'active' : ''}" onclick="window.switchBrokerTimeframe('yesterday')">Kemarin</button>
+          <button class="tf-btn ${activeTf === '1w' ? 'active' : ''}" onclick="window.switchBrokerTimeframe('1w')">1 Minggu</button>
+          <button class="tf-btn ${activeTf === '7w' ? 'active' : ''}" onclick="window.switchBrokerTimeframe('7w')">7 Minggu</button>
+          <button class="tf-btn ${activeTf === '1m' ? 'active' : ''}" onclick="window.switchBrokerTimeframe('1m')">1 Bulan</button>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:0.72rem; color:var(--text-secondary); font-family:var(--font-mono);">
+        <span class="source-tag-pill ${(summary.source && summary.source.includes('Index Alpha')) ? 'source-live' : (summary.source_type === 'fallback' ? 'source-fallback' : 'source-engine')}">
+          ${(summary.source && summary.source.includes('Index Alpha')) ? '● Index Alpha Live' : '● EOD Engine'}
+        </span>
+        <span>Mode: <strong>Net Broker</strong></span>
+      </div>
+    </div>
+
+    <!-- BANDAR ACTION METER (Stockbit style) -->
+    <div class="bandar-meter-wrapper">
+      <div class="bandar-meter-header">
+        <div class="bandar-meter-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Aksi Broker (Bandar Detector)
+        </div>
+        <div style="font-size:0.78rem; font-weight:700;" class="${bandarStatusClass === 'accum' ? 'text-bullish' : (bandarStatusClass === 'dist' ? 'text-bearish' : 'text-neutral')}">
+          ${currentTfData.bandar_status_label || currentTfData.bandar_status}
+        </div>
+      </div>
+      <div class="bandar-meter-track">
+        <div class="bandar-meter-needle" style="left: ${meterPercent}%;"></div>
+      </div>
+      <div class="bandar-meter-labels">
+        <span class="dist-label">Big Dist</span>
+        <span class="neutral-label">Neutral</span>
+        <span class="acc-label">Big Acc</span>
+      </div>
+    </div>
+
+    <!-- KEY METRICS CARDS -->
+    <div class="bandar-stats-summary-grid">
+      <div class="bandar-stat-item">
+        <span class="b-stat-title">Bandar Avg Buy Price</span>
+        <span class="b-stat-val text-bullish">${formatPrice(summary.avg_buy_bandar || data.close_price)}</span>
+        <span class="b-stat-sub">Rerata beli top broker</span>
+      </div>
+      <div class="bandar-stat-item">
+        <span class="b-stat-title">Bandar Avg Sell Price</span>
+        <span class="b-stat-val text-bearish">${formatPrice(summary.avg_sell_bandar || data.close_price)}</span>
+        <span class="b-stat-sub">Rerata jual top broker</span>
+      </div>
+      <div class="bandar-stat-item">
+        <span class="b-stat-title">Top 5 Net Value</span>
+        <span class="b-stat-val ${top5NetClass}">
+          ${formatIDRBillions(top5NetVal, true)}
+        </span>
+        <span class="b-stat-sub">Beli: ${formatIDRBillions(summary.top5_buyer_val)} | Jual: ${formatIDRBillions(summary.top5_seller_val)}</span>
+      </div>
+      <div class="bandar-stat-item">
+        <span class="b-stat-title">Asing Net Flow</span>
+        <span class="b-stat-val ${foreignFlowClass}">
+          ${formatIDRBillions(foreignNetVal, true)}
+        </span>
+        <span class="b-stat-sub">Beli: ${formatIDRBillions(summary.foreign_buy_val)} | Jual: ${formatIDRBillions(summary.foreign_sell_val)}</span>
+      </div>
+    </div>
+
+    <!-- TOP BUYERS VS TOP SELLERS TABLES -->
+    <div class="broker-tables-grid">
+      <!-- Buyers Table -->
+      <div class="broker-table-card buyer-side">
+        <div class="broker-table-header">
+          <span style="color:var(--bullish); display:flex; align-items:center; gap:6px;">
+            <span>🟢</span> Top Buyer (Akumulasi)
+          </span>
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;">
+            Total: ${formatIDRBillions(summary.top5_buyer_val)}
+          </span>
+        </div>
+        <table class="broker-data-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Broker (BY)</th>
+              <th style="text-align:center;">Tipe</th>
+              <th style="text-align:right;">B.lot</th>
+              <th style="text-align:right;">B.val</th>
+              <th style="text-align:right;">B.avg</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${buyersHtml}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Sellers Table -->
+      <div class="broker-table-card seller-side">
+        <div class="broker-table-header">
+          <span style="color:var(--bearish); display:flex; align-items:center; gap:6px;">
+            <span>🔴</span> Top Seller (Distribusi)
+          </span>
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:500;">
+            Total: ${formatIDRBillions(summary.top5_seller_val)}
+          </span>
+        </div>
+        <table class="broker-data-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Broker (SL)</th>
+              <th style="text-align:center;">Tipe</th>
+              <th style="text-align:right;">S.lot</th>
+              <th style="text-align:right;">S.val</th>
+              <th style="text-align:right;">S.avg</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sellersHtml}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INSIGHT NOTE -->
+    <div class="bandar-note-box">
+      <div style="font-size:0.8rem; font-weight:700; color:var(--accent-primary); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+        <span>💡</span> Ringkasan Smart Money & Bandarmologi (${currentTfData.timeframe_label || '1 Hari'})
+      </div>
+      <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.6;">
+        ${generateBandarInsight(currentTfData, data)}
+      </div>
+    </div>
+  `;
+}
+
+window.switchBrokerTimeframe = async function(tf) {
+  if (!currentDetailData) return;
+  const inner = document.getElementById('broker-summary-inner');
+  if (!inner) return;
+
+  currentBrokerTimeframe = tf;
+  const bs = currentDetailData.broker_summary || {};
+  const allTfs = bs.timeframes || {};
+
+  if (allTfs[tf]) {
+    inner.innerHTML = renderBrokerSummaryInner(bs, currentDetailData, tf);
+    return;
+  }
+
+  // Fetch dynamically if not cached in memory
+  inner.style.opacity = '0.5';
+  try {
+    const fetched = await api.getBrokerSummary(currentDetailData.stock_code, tf);
+    if (!bs.timeframes) bs.timeframes = {};
+    bs.timeframes[tf] = fetched;
+    inner.innerHTML = renderBrokerSummaryInner(bs, currentDetailData, tf);
+  } catch (err) {
+    console.error('Error switching broker timeframe:', err);
+  } finally {
+    inner.style.opacity = '1';
+  }
+};
+
+function generateBandarInsight(bs, data) {
+  const summary = bs.summary || {};
+  const status = (bs.bandar_status || '').toUpperCase();
+  const buyers = bs.top_buyers || [];
+  const sellers = bs.top_sellers || [];
+  const topB = buyers.slice(0, 2).map(b => `<strong>${b.broker}</strong> (${b.name})`).join(' dan ') || 'broker akumulator';
+  const topS = sellers.slice(0, 2).map(s => `<strong>${s.broker}</strong> (${s.name})`).join(' dan ') || 'broker penjual';
+  const avgBuy = formatPrice(summary.avg_buy_bandar || data.close_price);
+  const avgSell = formatPrice(summary.avg_sell_bandar || data.close_price);
+  const closePrice = formatPrice(data.close_price);
+
+  let insight = '';
+  if (status.includes('ACCUMULATION')) {
+    insight += `Terdeteksi <strong>akumulasi signifikan</strong> pada saham ${data.stock_code}. Pembelian terfokus dipimpin oleh ${topB} dengan harga rata-rata beli di kisaran <strong>Rp ${avgBuy}</strong> (harga penutupan saat ini Rp ${closePrice}). `;
+    insight += `Level Rp ${avgBuy} dapat dijadikan acuan batas support psikologis modal bandar. `;
+  } else if (status.includes('DISTRIBUTION')) {
+    insight += `Terindikasi adanya <strong>tekanan distribusi</strong> pada saham ${data.stock_code}. Aksi jual didominasi oleh ${topS} dengan harga rata-rata jual keluar di kisaran <strong>Rp ${avgSell}</strong>. `;
+    insight += `Disarankan untuk wait & see atau mengetatkan trailing stop jika harga turun menembus di bawah area distribusi. `;
+  } else {
+    insight += `Arus transaksi broker pada ${data.stock_code} saat ini terpantau <strong>netral dan seimbang</strong> antara volume beli (${topB}) dan jual (${topS}). Belum ada tanda konsentrasi satu arah yang ekstrim dari smart money. `;
+  }
+
+  const fnv = summary.foreign_net_val || 0;
+  if (fnv > 0) {
+    insight += `Partisipan asing tercatat melakukan <strong>Net Buy sebesar ${formatIDRBillions(fnv)}</strong>, memberikan dorongan positif.`;
+  } else if (fnv < 0) {
+    insight += `Investor asing mencatatkan <strong>Net Sell sebesar ${formatIDRBillions(Math.abs(fnv))}</strong>, yang perlu dicermati terhadap ketahanan support lokal.`;
+  } else {
+    insight += `Aliran dana investor asing berada dalam posisi netral.`;
+  }
+
+  return insight;
 }
 
 async function initCharts(data) {

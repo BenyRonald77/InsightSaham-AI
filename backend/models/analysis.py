@@ -54,6 +54,9 @@ class AnalysisRun(Base):
     # === Volume MA20 ===
     volume_ma20: Mapped[float] = mapped_column(Float, default=0.0)
 
+    # === Broker Summary / Bandarmologi ===
+    broker_summary: Mapped[dict | None] = mapped_column(JSON, default=None)
+
     def __repr__(self):
         return f"<AnalysisRun {self.stock_code} @ {self.analysis_date}>"
 
@@ -82,10 +85,16 @@ class AnalysisRun(Base):
             "scenarios": self.scenarios,
             "narrative": self.narrative,
             "chart_data": self.chart_data,
+            "broker_summary": self.broker_summary,
         }
 
     def to_summary(self):
         """Lightweight dict for dashboard listing."""
+        bandar_status = None
+        bandar_label = None
+        if self.broker_summary:
+            bandar_status = self.broker_summary.get("bandar_status")
+            bandar_label = self.broker_summary.get("bandar_status_label")
         return {
             "id": self.id,
             "stock_code": self.stock_code,
@@ -96,4 +105,6 @@ class AnalysisRun(Base):
             "close_price": self.close_price,
             "price_change_pct": self.price_change_pct,
             "trend": self.trend,
+            "bandar_status": bandar_status,
+            "bandar_status_label": bandar_label,
         }

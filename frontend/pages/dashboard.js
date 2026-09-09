@@ -3,7 +3,7 @@
  * Displays stats, curated wishlists (Konglomerat & Sektoral), and latest analyses.
  */
 import { api } from '../utils/api.js';
-import { formatPrice, formatPercent, formatDateShort, getPriceChangeClass, getTrendClass } from '../utils/formatters.js';
+import { formatPrice, formatPercent, formatDateShort, getPriceChangeClass, getTrendClass, getBandarStatusClass } from '../utils/formatters.js';
 import { showToast } from '../components/toast.js';
 
 // Page state
@@ -553,7 +553,14 @@ function renderAnalysesGrid() {
           <div class="stock-name">${a.stock_name}</div>
           <div class="stock-sector">${a.sector}</div>
         </div>
-        <span class="trend-badge ${getTrendClass(a.trend)}">${a.trend || '-'}</span>
+        <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+          <span class="trend-badge ${getTrendClass(a.trend)}">${a.trend || '-'}</span>
+          ${a.bandar_status ? `
+            <span class="bandar-status-badge ${getBandarStatusClass(a.bandar_status)}" style="font-size:0.68rem; padding:2px 6px;">
+              ${a.bandar_status_label || a.bandar_status}
+            </span>
+          ` : ''}
+        </div>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top: var(--space-sm);">
         <div>

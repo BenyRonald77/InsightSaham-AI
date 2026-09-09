@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
     llm_provider: str = Field(default="gemini", alias="LLM_PROVIDER")
 
+    # === Broker Summary / Data API ===
+    indexalpha_api_key: str = Field(default="", alias="INDEXALPHA_API_KEY")
+
     # === Database ===
     database_url: str = Field(
         default="sqlite+aiosqlite:///./insightsaham.db",

@@ -37,6 +37,13 @@ async def init_db():
         )
         await conn.run_sync(Base.metadata.create_all)
 
+        # Ensure broker_summary column exists on existing database
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("ALTER TABLE analysis_runs ADD COLUMN broker_summary JSON"))
+        except Exception:
+            pass
+
 
 async def get_db() -> AsyncSession:
     """Dependency for FastAPI — yields a database session."""

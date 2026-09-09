@@ -66,6 +66,7 @@ ehthumbs.db
 
 # ===== Project Specific =====
 data/cache/
+backend/data/
 exports/
 *.png
 !frontend/public/*.png

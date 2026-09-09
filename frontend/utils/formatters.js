@@ -77,3 +77,32 @@ export function safeNum(value, fallback = '-') {
   if (value == null || isNaN(value)) return fallback;
   return value;
 }
+
+/** Format Rupiah with Milyar / Triliun / Juta suffix */
+export function formatIDRBillions(value, showSign = false) {
+  if (value == null || isNaN(value)) return '-';
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : (showSign && value > 0 ? '+' : '');
+  if (abs >= 1e12) return `${sign}Rp ${(abs / 1e12).toFixed(2)} T`;
+  if (abs >= 1e9) return `${sign}Rp ${(abs / 1e9).toFixed(2)} M`;
+  if (abs >= 1e6) return `${sign}Rp ${(abs / 1e6).toFixed(1)} Jt`;
+  return `${sign}Rp ${Math.round(abs).toLocaleString('id-ID')}`;
+}
+
+/** Format number in thousands/millions */
+export function formatNumberShort(value) {
+  if (value == null || isNaN(value)) return '-';
+  const abs = Math.abs(value);
+  if (abs >= 1e6) return (abs / 1e6).toFixed(2) + ' jt';
+  if (abs >= 1e3) return (abs / 1e3).toFixed(1) + ' rb';
+  return Math.round(abs).toLocaleString('id-ID');
+}
+
+/** Get bandar status CSS class */
+export function getBandarStatusClass(status) {
+  if (!status) return 'neutral';
+  const s = status.toUpperCase();
+  if (s.includes('ACCUMULATION')) return 'accum';
+  if (s.includes('DISTRIBUTION')) return 'dist';
+  return 'neutral';
+}

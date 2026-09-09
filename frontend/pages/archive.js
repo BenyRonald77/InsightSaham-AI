@@ -3,7 +3,7 @@
  * Browse historical analysis results with filters.
  */
 import { api } from '../utils/api.js';
-import { formatPrice, formatPercent, formatDateShort, getPriceChangeClass, getTrendClass } from '../utils/formatters.js';
+import { formatPrice, formatPercent, formatDateShort, getPriceChangeClass, getTrendClass, getBandarStatusClass } from '../utils/formatters.js';
 
 export async function renderArchive(container) {
   container.innerHTML = `
@@ -98,6 +98,7 @@ async function loadArchive(params) {
               <th style="text-align:right;">Harga</th>
               <th style="text-align:right;">Perubahan</th>
               <th>Trend</th>
+              <th>Bandarmologi</th>
               <th></th>
             </tr>
           </thead>
@@ -111,6 +112,13 @@ async function loadArchive(params) {
                 <td class="price-cell" style="text-align:right;">${formatPrice(a.close_price)}</td>
                 <td class="price-cell ${getPriceChangeClass(a.price_change_pct)}" style="text-align:right;">${formatPercent(a.price_change_pct)}</td>
                 <td><span class="trend-badge ${getTrendClass(a.trend)}">${a.trend || '-'}</span></td>
+                <td>
+                  ${a.bandar_status ? `
+                    <span class="bandar-status-badge ${getBandarStatusClass(a.bandar_status)}" style="font-size:0.68rem; padding:2px 6px;">
+                      ${a.bandar_status_label || a.bandar_status}
+                    </span>
+                  ` : '<span style="color:var(--text-muted); font-size:0.75rem;">-</span>'}
+                </td>
                 <td>
                   <button class="btn btn-secondary btn-sm" onclick="window.navigateTo('analysis-detail', ${a.id})">Detail →</button>
                 </td>

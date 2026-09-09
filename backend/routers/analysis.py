@@ -17,6 +17,12 @@ from services.data_sync import fetch_stock_data, get_all_stock_codes
 from services.indicators import calculate_all_indicators
 from services.bias_engine import calculate_support_resistance, determine_trend, generate_scenarios
 from services.narrative_engine import generate_narrative
+from services.broker_summary import (
+    fetch_from_indexalpha,
+    calculate_bandarmologi_metrics,
+    _INDEXALPHA_CACHE,
+    get_indexalpha_quota_status,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/analysis", tags=["Analysis"])
@@ -102,7 +108,12 @@ async def run_analysis_pipeline(selection_id: int, stock_codes: list[str]):
                 prev_close = float(df["Close"].iloc[-2]) if len(df) >= 2 else close
                 change_pct = ((close - prev_close) / prev_close * 100) if prev_close > 0 else 0
 
-                # Step 6: Build analysis data for narrative
+                # Step 6: Calculate Broker Summary & Bandarmologi
+                data_date = df.index[-1].date() if hasattr(df.index[-1], 'date') else date.today()
+                raw_broker_data = await fetch_from_indexalpha(code, data_date)
+                broker_summary = calculate_bandarmologi_metrics(code, data_date, df, raw_broker_data)
+
+                # Step 7: Build analysis data for narrative
                 analysis_data = {
                     "stock_code": code,
                     "stock_name": stock_info["name"],
@@ -113,14 +124,13 @@ async def run_analysis_pipeline(selection_id: int, stock_codes: list[str]):
                     "trend_info": trend_info,
                     "sr_levels": sr_levels,
                     "scenarios": scenarios,
+                    "broker_summary": broker_summary,
                 }
 
-                # Step 7: Generate AI narrative
+                # Step 8: Generate AI narrative
                 narrative = await generate_narrative(analysis_data)
 
-                # Step 8: Save to database
-                data_date = df.index[-1].date() if hasattr(df.index[-1], 'date') else date.today()
-
+                # Step 9: Save to database
                 analysis_run = AnalysisRun(
                     stock_code=code,
                     stock_name=stock_info["name"],
@@ -143,6 +153,7 @@ async def run_analysis_pipeline(selection_id: int, stock_codes: list[str]):
                     scenarios=scenarios,
                     narrative=narrative,
                     chart_data=indicators["chart_series"],
+                    broker_summary=broker_summary,
                 )
 
                 db.add(analysis_run)
@@ -212,7 +223,75 @@ async def get_analysis_detail(
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-    return analysis.to_dict()
+    data = analysis.to_dict()
+    code = analysis.stock_code.upper().strip()
+    target_d = analysis.data_date or analysis.analysis_date or date.today()
+    date_str = target_d.strftime("%Y-%m-%d")
+    cache_key = f"{code}_{date_str}_{date_str}"
+
+    existing_bs = data.get("broker_summary") or {}
+    existing_src = existing_bs.get("summary", {}).get("source", "")
+
+    # Regenerate if broker_summary is missing or if live Index Alpha data is available in cache but not in DB
+    if not existing_bs or "timeframes" not in existing_bs or (cache_key in _INDEXALPHA_CACHE and "Index Alpha" not in existing_src):
+        data["broker_summary"] = calculate_bandarmologi_metrics(
+            code,
+            target_d,
+            None,
+        )
+        analysis.broker_summary = data["broker_summary"]
+        await db.commit()
+    return data
+
+
+@router.get("/broker-summary-quota")
+async def get_broker_quota():
+    """Get Index Alpha connection and Free Tier quota usage status."""
+    return get_indexalpha_quota_status()
+
+
+@router.get("/broker-summary/{stock_code}")
+async def get_broker_summary(
+    stock_code: str,
+    timeframe: str = Query("today", description="today, yesterday, 1w, 7w, 1m"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get Broker Summary for a stock across timeframes (today, yesterday, 1w, 7w, 1m).
+    """
+    code = stock_code.upper().strip()
+    query = (
+        select(AnalysisRun)
+        .where(AnalysisRun.stock_code == code)
+        .where(AnalysisRun.status == "completed")
+        .order_by(desc(AnalysisRun.analysis_date))
+        .limit(1)
+    )
+    res = await db.execute(query)
+    run = res.scalar_one_or_none()
+
+    target_date = run.analysis_date if run and run.analysis_date else date.today()
+    date_str = target_date.strftime("%Y-%m-%d")
+    cache_key = f"{code}_{date_str}_{date_str}"
+
+    # Check if run's broker_summary can be used directly
+    if run and run.broker_summary and "timeframes" in run.broker_summary:
+        existing_src = run.broker_summary.get("summary", {}).get("source", "")
+        # If cache has live Index Alpha data but run has synthetic data, recalculate
+        if not (cache_key in _INDEXALPHA_CACHE and "Index Alpha" not in existing_src):
+            tf_data = run.broker_summary["timeframes"].get(timeframe)
+            if tf_data:
+                return tf_data
+
+    # Otherwise recalculate with available cache / live engine
+    full_metrics = calculate_bandarmologi_metrics(code, target_date, None)
+    if run:
+        run.broker_summary = full_metrics
+        await db.commit()
+
+    if "timeframes" in full_metrics and timeframe in full_metrics["timeframes"]:
+        return full_metrics["timeframes"][timeframe]
+    return full_metrics
 
 
 @router.get("/stock/{stock_code}")

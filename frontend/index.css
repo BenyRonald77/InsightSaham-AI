@@ -1801,4 +1801,380 @@ a:hover {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
+/* =====================================================
+   BROKER SUMMARY & BANDARMOLOGI STYLES
+   ===================================================== */
+.bandarmologi-card {
+  border-color: rgba(0, 212, 170, 0.2);
+  background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%);
+  box-shadow: var(--shadow-md);
+  margin-top: var(--space-lg);
+}
+
+.bandarmologi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: var(--space-md);
+}
+
+/* Timeframe Bar */
+.broker-timeframe-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin-bottom: var(--space-md);
+}
+
+.source-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.70rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.source-tag-pill.source-live {
+  background: rgba(0, 212, 170, 0.12);
+  color: #00d4aa;
+  border: 1px solid rgba(0, 212, 170, 0.35);
+}
+
+.source-tag-pill.source-fallback {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.source-tag-pill.source-engine {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+}
+
+.timeframe-pill-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tf-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tf-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+.tf-btn.active {
+  background: var(--accent-primary);
+  color: #0d1117;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(0, 212, 170, 0.4);
+}
+
+/* Bandar Action Meter (Stockbit style) */
+.bandar-meter-wrapper {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 16px 14px;
+  margin-bottom: var(--space-md);
+}
+
+.bandar-meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.bandar-meter-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bandar-meter-track {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right, #ef4444 0%, #f97316 28%, #64748b 50%, #10b981 72%, #00d4aa 100%);
+  margin: 18px 8px 10px;
+}
+
+.bandar-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.bandar-meter-labels .dist-label {
+  color: var(--bearish);
+}
+
+.bandar-meter-labels .neutral-label {
+  color: var(--neutral);
+}
+
+.bandar-meter-labels .acc-label {
+  color: var(--bullish);
+}
+
+.bandar-meter-needle {
+  position: absolute;
+  top: -7px;
+  width: 4px;
+  height: 24px;
+  background: #ffffff;
+  border-radius: 2px;
+  box-shadow: 0 0 8px #ffffff, 0 2px 5px rgba(0, 0, 0, 0.7);
+  transform: translateX(-50%);
+  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+}
+
+.bandar-meter-needle::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: #a855f7;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.8);
+}
+
+.bandar-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.bandar-status-badge.accum {
+  background: var(--bullish-bg);
+  border: 1px solid var(--bullish-border);
+  color: var(--bullish);
+}
+
+.bandar-status-badge.dist {
+  background: var(--bearish-bg);
+  border: 1px solid var(--bearish-border);
+  color: var(--bearish);
+}
+
+.bandar-status-badge.neutral {
+  background: var(--neutral-bg);
+  border: 1px solid var(--neutral-border);
+  color: var(--neutral);
+}
+
+.bandarmologi-quick-metrics {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metric-pill {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  text-align: right;
+}
+
+.metric-pill .m-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.metric-pill .m-val {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.bandar-stats-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: var(--space-md);
+}
+
+.bandar-stat-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.b-stat-title {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.b-stat-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.b-stat-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+/* Two-column broker tables */
+.broker-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.broker-table-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.broker-table-card.buyer-side {
+  border-top: 3px solid var(--bullish);
+}
+
+.broker-table-card.seller-side {
+  border-top: 3px solid var(--bearish);
+}
+
+.broker-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.broker-data-table {
+  width: 100%;
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.broker-data-table th {
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.broker-data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.broker-code-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+
+.broker-code-badge.foreign {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.broker-code-badge.domestic {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--neutral);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.broker-full-name {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  display: inline-block;
+  max-width: 140px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.broker-type-pill {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.broker-type-pill.foreign {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-blue);
+}
+
+.broker-type-pill.domestic {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+.bandar-note-box {
+  background: rgba(0, 212, 170, 0.05);
+  border: 1px dashed rgba(0, 212, 170, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+
 
