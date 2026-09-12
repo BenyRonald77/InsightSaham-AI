@@ -1,4 +1,4 @@
-# InsightSaham — AI Technical Analysis Generator 1
+# InsightSaham — AI Technical Analysis Generator 12
 
 > Internal tool untuk mengotomatisasi pembuatan analisis teknikal saham IDX, meniru format kartu analisis "Trader Swing Saham Indonesia" dengan tambahan modul prediksi berbasis probabilitas historis.
 
